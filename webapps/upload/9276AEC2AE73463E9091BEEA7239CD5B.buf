@@ -1,0 +1,5 @@
+SELECT LEVEL, LPAD(' ', 4*(LEVEL-1)) || ename ename, empno, job, PRIOR ename managername
+FROM emp
+START WITH job='PRESIDENT'
+CONNECT BY PRIOR empno=mgr
+/

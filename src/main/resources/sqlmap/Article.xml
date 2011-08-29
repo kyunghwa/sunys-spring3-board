@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="article">
+
+    <typeAlias alias="article" type="com.spring.mvc.article.model.Article"/>
+    <typeAlias alias="search" type="com.spring.mvc.article.model.Search"/>
+        
+    <insert id="insertArticle" parameterClass="article" >
+	    <selectKey resultClass="int" keyProperty="articleId">
+	       SELECT SEQ_ARTICLE_ID.NEXTVAL articleId FROM DUAL
+	    </selectKey>
+    
+        INSERT INTO tb_article
+            (article_id, community_id, group_id, re_level, re_depth, 
+             empno, title, name, content, use_yn, regist_ymdt)
+        VALUES
+            (#articleId#, #communityId#, #articleId#, #reLevel#, #reDepth#, 
+             #empno#, #title#, #name#, #content#, 'Y', SYSDATE)
+    </insert>
+  	
+  	 <update id="deleteArticle" parameterClass="int" >
+        UPDATE tb_article
+           SET use_yn = 'N',
+               update_ymdt = SYSDATE
+        WHERE article_id = #articleId#
+    </update>
+    
+    <select id="selectArticleList" resultClass="article" parameterClass="search" cacheModel="cachemodel.selectArticleListCache">
+	    SELECT /*+ INDEX(TB_ARTICLE IDX_ARTICLE_01) */ ROWNUM num, 
+	           community_id communityId, article_id articleId, 
+               group_id groupId, re_level reLevel, re_depth reDepth, 
+               title, name, empno, regist_ymdt registYmdt
+	    FROM  tb_article
+	    WHERE community_id = #communityId#
+	      AND use_yn ='Y'
+	      <dynamic>
+	      	<isNotEmpty property="searchKey" prepend="AND">
+	      		<isNotEmpty property="searchValue">
+	      			$searchKey$ LIKE '%' || #searchValue# || '%'
+	      		</isNotEmpty>
+	      	</isNotEmpty>
+	      </dynamic>
+    </select>     
+  
+    <select id="selectArticleInfo" resultClass="article" parameterClass="int">
+        SELECT community_id communityId, article_id articleId, 
+               group_id groupId, re_level reLevel, re_depth reDepth, 
+               title, name, content, empno, regist_ymdt registYmdt
+        FROM tb_article
+        WHERE article_id = #articleId#
+          AND use_yn ='Y'
+    </select>  
+    
+    <insert id="replyArticle" parameterClass="article" >
+        <selectKey resultClass="int" keyProperty="articleId">
+           SELECT SEQ_ARTICLE_ID.NEXTVAL articleId FROM DUAL
+        </selectKey>
+    
+        INSERT INTO tb_article
+            (article_id, community_id, group_id, re_level, re_depth, 
+             empno, title, name, content, use_yn, regist_ymdt)
+        VALUES
+            (#articleId#, #communityId#, #groupId#, #reLevel#, #reDepth#, 
+             #empno#, #title#, #name#, #content#, 'Y', SYSDATE)
+    </insert>   
+
+    <update id="updateReplyArticle" parameterClass="article" >
+        UPDATE tb_article
+           SET re_depth = re_depth+1
+        WHERE group_id = #groupId#
+          AND re_depth > #reDepth#
+    </update>    
+    
+</sqlMap>

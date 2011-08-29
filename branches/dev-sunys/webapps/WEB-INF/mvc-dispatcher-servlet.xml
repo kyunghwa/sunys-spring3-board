@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans 
+                           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://www.springframework.org/schema/context 
+                           http://www.springframework.org/schema/context/spring-context-3.0.xsd
+                           http://www.springframework.org/schema/mvc
+                           http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd">
+    
+    <!-- Annotation Controller 설정-->
+    <!-- 주의 : Spring MVC에서 Service, Repository Bean까지 모두 자동탐지를 하면, -->
+    <!-- Service, Repository Bean 이 트랜잭션 처리가 안되는 이슈가 있다.-->
+    <!-- @Service, @Repository 를 사용하는 Bean들은  dispatcher-servlet에서 제외 처리한다.  -->    
+    <context:component-scan base-package="com.spring.mvc" >    
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository"/>
+    </context:component-scan>
+    
+    <!-- @Autowired를 사용할 수 있다.  -->
+    <context:annotation-config />
+    
+    <!-- Spring3 Validator 처리, String3 Interceptor URL Mapping -->
+    <mvc:annotation-driven />
+    
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/article/form.ok" />
+            <mvc:mapping path="/article/write.ok" />
+            <mvc:mapping path="/article/remove.ok" />    
+            <mvc:mapping path="/article/modify.ok" />        
+            <bean class="com.spring.mvc.common.interceptor.UserAuthInterceptor" />
+        </mvc:interceptor>
+	    <!--
+	    <mvc:interceptor>
+	       <mvc:mapping path="/lecture/*" />
+	       <bean class="com.spring.mvc.common.interceptor.UserAuthInterceptor" />
+	    </mvc:interceptor>
+	    -->
+	</mvc:interceptors>
+    
+    <!-- Spring FileUpload 처리 -->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!-- one of the properties available; the maximum file size in bytes -->
+        <property name="maxUploadSize" value="1000000"/>
+    </bean>
+
+    <bean id="viewResolver"
+        class="org.springframework.web.servlet.view.InternalResourceViewResolver" >
+        <property name="prefix">
+            <value>/WEB-INF/pages/</value>
+        </property>
+        <property name="suffix">
+            <value>.jsp</value>
+        </property>
+        <property name="order" value="0" />
+    </bean>
+    
+    <!-- Register the Customer.properties -->
+    <bean id="messageSource"
+        class="org.springframework.context.support.ResourceBundleMessageSource">
+        <property name="basename" value="message/messages" />
+    </bean>
+    
+    <!-- messageSourceAccessor -->
+    <bean id="messageSourceAccessor" class="org.springframework.context.support.MessageSourceAccessor">
+        <constructor-arg ref="messageSource"/>
+    </bean>
+    
+    <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+    	<property name="exceptionMappings">
+            <props>
+                <prop key="java.lang.Exception">common/error</prop>
+            </props>
+        </property>
+    </bean>
+ 
+ 	<import resource="classes/springmvc/mvc-dispatcher-servlet-article.xml"/>
+ 	
+</beans>
+    

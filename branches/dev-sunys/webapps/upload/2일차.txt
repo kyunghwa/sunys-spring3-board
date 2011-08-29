@@ -1,0 +1,490 @@
+//계층구조 쿼리
+select * from emp;
+
+COL ename FORMAT A20;
+
+SELECT LEVEL, LPAD(' ', 4*(LEVEL-1)) || ename ename, empno, mgr, job
+FROM emp
+START WITH job='PRESIDENT'
+CONNECT BY PRIOR empno=mgr;
+
+SELECT LEVEL, LPAD(' ', 4*(LEVEL-1)) || ename ename, empno, mgr, job
+FROM emp
+START WITH ename='KING'
+CONNECT BY PRIOR empno=mgr;
+
+//LEVEL
+SELECT LEVEL, SUM(sal) total, COUNT(empno) cnt
+FROM emp
+START WITH job='PRESIDENT'
+CONNECT BY PRIOR empno=mgr
+GROUP BY LEVEL
+ORDER BY LEVEL;
+
+//bottom up
+COL ename FORMAT A20;
+SELECT LEVEL, LPAD(' ', 4*(LEVEL-1)) || ename ename, empno, mgr, job
+FROM emp
+START WITH ename = 'SMITH'
+CONNECT BY empno = PRIOR mgr;
+
+//CONNECT_BY_ROOT
+SELECT LPAD(' ', 4*(LEVEL-1)) || ename ename, empno,
+	CONNECT_BY_ROOT empno "Root empno", level
+FROM emp
+START WITH job = 'PRESIDENT'
+CONNECT BY PRIOR empno = mgr;
+
+//CONNECT_BY_ISLEAF
+SELECT LPAD(' ', 4*(LEVEL-1)) || ename ename, empno,
+	CONNECT_BY_ISLEAF "leaf", level
+FROM emp
+START WITH job = 'PRESIDENT'
+CONNECT BY NOCYCLE PRIOR empno = mgr;
+
+//SYS_CONNECT_BY_PATH
+COL PATH FORMAT A40
+SELECT LPAD(' ', 4*(LEVEL-1)) || ename ename, empno,
+	SYS_CONNECT_BY_PATH(ename, '/') "PATH"
+FROM emp
+START WITH job = 'PRESIDENT'
+CONNECT BY PRIOR empno = mgr;
+
+COL PATH FORMAT A40
+SELECT LEVEL, SUBSTR(SYS_CONNECT_BY_PATH(ename, ','),2) "PATH"
+FROM emp
+WHERE CONNECT_BY_ISLEAF = 1
+START WITH mgr IS NULL
+CONNECT BY PRIOR empno = mgr;
+
+//ORDER SIBLINGS BY
+COL ename FORMAT A25
+COL ename2 FORMAT A10
+SELECT LPAD(' ', 4*(LEVEL-1)) || ename ename,
+	ename ename2, empno, level
+FROM emp
+START WITH job='PRESIDENT'
+CONNECT BY NOCYCLE PRIOR empno = mgr
+ORDER SIBLINGS BY ename2;
+
+//INDEX
+explain plan for select /*+ INDEX(emp emp_deptno) */ * from emp where deptno = '10';
+explain plan for select /*+ INDEX(emp emp_deptno) */ * from emp where deptno like '1%';
+
+//INDEX UNIQUE SCAN
+EXPLAIN PLAN FOR
+SELECT dname FROM dept WHERE deptno = 10;
+
+select rowid, deptno from dept;
+
+//INDEX RANGE SCAN
+EXPLAIN PLAN FOR
+SELECT ename FROM emp WHERE empno BETWEEN 7000 AND 7500;
+
+EXPLAIN PLAN FOR SELECT/*+ index(emp pk_emp) */  ename FROM emp WHERE empno BETWEEN 7000 AND 7500;
+
+//INDEX RANGE SCAN DESCENDING
+create index emp_sal on emp (sal);
+select /*+ INDEX_DESC(emp emp_sal)*/ ename, sal from emp where sal>1000;
+EXPLAIN PLAN FOR select /*+ INDEX_DESC(emp emp_sal)*/ ename, sal from emp where sal>1000;
+
+select /*+ INDEX_DESC(emp emp_sal)*/ ename, sal from emp where sal>1000 and rownum=1;
+select /*+ INDEX(emp emp_sal)*/ ename, sal from emp where sal>1000 and rownum=1;
+
+//INDEX FULL SCAN
+EXPLAIN PLAN FOR
+SELECT /*+ INDEX(dept PK_DEPT) */ deptno FROM dept;
+EXPLAIN PLAN FOR
+SELECT deptno FROM dept ORDER BY deptno;
+
+//INDEX FAST FULL SCAN
+EXPLAIN PLAN FOR
+SELECT /*+ INDEX_FFS(emp pk_emp) */ COUNT(*) FROM emp;
+
+//INDEX SKIP SCAN
+CREATE INDEX emp_idx_ss ON emp (deptno, sal);
+
+EXPLAIN PLAN FOR
+SELECT /*+ INDEX_SS(emp emp_idx_ss) */ ename, deptno, sal
+FROM emp
+WHERE sal BETWEEN 1500 AND 3000;
+
+
+EXPLAIN PLAN FOR
+SELECT * FROM dept d, emp e
+WHERE d.deptno = e.deptno;
+
+EXPLAIN PLAN FOR
+SELECT /*+ LEADING(d) USE_NL(d e) */* FROM dept d, emp e
+WHERE d.deptno = e.deptno;
+
+
+//시퀀스
+CREATE SEQUENCE seq_empno
+START WITH 8000
+INCREMENT BY 1
+CACHE 20;
+
+drop sequence seq_empno;
+
+CREATE SEQUENCE seq_empno
+START WITH 1
+INCREMENT BY 1
+CYCLE
+MAXVALUE 100;
+
+SELECT TO_CHAR(SYSDATE,'YYYYMMDD')||LPAD(seq_empno.nextval,4,'0')
+FROM DUAL
+CONNECT BY LEVEL < 1001;
+
+//Merge
+CREATE TABLE emp_merge_test
+AS SELECT empno, deptno, sal FROM emp WHERE deptno IN (10, 20);
+
+SELECT * FROM emp_merge_test;
+
+MERGE INTO emp_merge_test m
+USING ( SELECT empno, deptno, sal
+	FROM emp
+	WHERE deptno IN (20,30)) e
+ON ( m.empno = e.empno )
+WHEN MATCHED THEN
+	UPDATE SET m.sal = ROUND(m.sal*1.1)
+WHEN NOT MATCHED THEN
+	INSERT (m.empno, m.deptno, m.sal)
+	VALUES (e.empno, e.deptno, e.sal)
+	WHERE e.sal < 1000;
+COMMIT;
+SELECT * FROM emp_merge_test;
+DELETE FROM emp_merge_test WHERE deptno = 30;
+COMMIT;
+
+
+SELECT * FROM emp_merge_test;
+MERGE INTO emp_merge_test m
+USING emp e
+ON ( m.empno = e.empno )
+WHEN MATCHED THEN
+	UPDATE SET m.sal = ROUND(m.sal*1.1)
+	DELETE WHERE deptno = 20
+WHEN NOT MATCHED THEN
+	INSERT (m.empno, m.deptno, m.sal)
+	VALUES (e.empno, e.deptno, ROUND(e.sal*1.2));
+COMMIT;
+SELECT * FROM emp_merge_test;
+
+
+//JOIN UPDATE
+CREATE TABLE emp_update
+AS SELECT e.empno, d.deptno, d.dname
+FROM emp e, dept d WHERE e.deptno = d.deptno;
+
+UPDATE emp_update SET dname = null;
+COMMIT;
+
+SELECT * FROM emp_update;
+
+UPDATE emp_update u
+	SET dname = ( SELECT d.dname
+			FROM emp e, dept d
+			WHERE u.empno = e.empno AND e.deptno = d.deptno );
+COMMIT;
+
+SELECT * FROM emp_update;
+
+UPDATE emp_update SET deptno=null, dname=null;
+COMMIT;
+
+SELECT * FROM emp_update;
+
+UPDATE emp_update u
+	SET (deptno, dname) = ( SELECT d.deptno, dname
+				FROM emp e, dept d
+				WHERE u.empno = e.empno
+				AND e.deptno = d.deptno );
+
+SELECT * FROM emp_update;
+
+
+//뷰를 이용한 JOIN UPDATE
+UPDATE emp_update SET deptno=null, dname=null;
+COMMIT;
+
+SELECT * FROM emp_update;
+
+UPDATE
+	( SELECT u.dname u_dname, u.deptno u_deptno, d.dname, d.deptno
+	FROM emp_update u, emp e, dept d
+	WHERE u.empno = e.empno
+	AND e.deptno = d.deptno )
+SET u_dname = dname,
+	u_deptno = deptno;
+COMMIT;
+
+SELECT * FROM emp_update;
+
+
+UPDATE
+	(SELECT u.dname u_dname, u.deptno u_deptno, d.dname, d.deptno
+	FROM emp_update u, emp e, dept d
+	WHERE u.empno = e.empno
+	AND e.deptno = d.deptno)
+SET dname = u_dname;
+
+UPDATE dept SET dname=null WHERE deptno < 40;
+COMMIT;
+
+select * from dept;
+
+UPDATE /*+ BYPASS_UJVC */ 
+	(SELECT u.dname u_dname, u.deptno u_deptno, d.dname, d.deptno
+	FROM emp_update u, emp e, dept d
+	WHERE u.empno = e.empno
+	AND e.deptno = d.deptno)
+SET dname = u_dname;
+COMMIT;
+
+SELECT * FROM dept;
+
+DROP TABLE emp_update;
+
+
+//분석함수
+SELECT deptno, SUM(sal) s_sal
+FROM emp
+GROUP BY deptno;
+
+SELECT deptno,
+	SUM(sal) OVER(PARTITION BY deptno) s_sal
+FROM emp;
+
+//순위함수
+SELECT deptno, empno, sal,
+	RANK() OVER(ORDER BY sal DESC) rk
+FROM emp;
+
+SELECT deptno, empno, sal,
+	RANK() OVER(PARTITION BY deptno ORDER BY sal DESC) rk
+FROM emp;
+
+//순위함수비교
+SELECT deptno, empno, sal,
+	RANK() OVER(ORDER BY sal DESC) rk,
+	DENSE_RANK() OVER(ORDER BY sal DESC) dr,
+	ROW_NUMBER() OVER(ORDER BY sal DESC) rn
+FROM emp;
+
+//NTILE
+SELECT empno,
+	NTILE(2) OVER(ORDER BY empno) grp2,
+	NTILE(3) OVER(ORDER BY empno) grp3,
+	NTILE(5) OVER(ORDER BY empno) grp5
+FROM emp;
+
+//SUM
+SELECT empno, ename, deptno,
+	SUM(sal) OVER () all_sum,
+	SUM(sal) OVER (PARTITION BY deptno) dept_sum,
+	SUM(sal) OVER (PARTITION BY deptno ORDER BY empno) nujuk_sum
+FROM emp;
+
+SELECT empno, ename, deptno,
+	SUM(sal) OVER () all_sum,
+	SUM(sal) OVER (PARTITION BY deptno) dept_sum,
+	SUM(sal) OVER (PARTITION BY deptno ORDER BY sal) nujuk_sum,
+	SUM(sal) OVER (ORDER BY sal) nujuk2_sum,
+	COUNT(sal) OVER (ORDER BY sal) count_sum
+FROM emp;
+
+//RATIO_TO_REPORT
+SELECT deptno,
+	SUM(sal) sal,
+	SUM(SUM(sal)) OVER() tot,
+	ROUND(SUM(sal) / SUM(SUM(sal)) OVER(), 2) rat1,
+	ROUND(RATIO_TO_REPORT(SUM(sal)) OVER(), 2) rat2
+FROM emp
+GROUP BY deptno;
+SELECT deptno,
+	SUM(sal) sal,
+	SUM(SUM(sal)) OVER(ORDER BY SUM(sal)) tot,
+	ROUND(SUM(sal) / SUM(SUM(sal)) OVER(), 2) rat1,
+	ROUND(RATIO_TO_REPORT(SUM(sal)) OVER(), 2) rat2
+FROM emp
+GROUP BY deptno;
+
+//Windowing
+SELECT empno, ename, deptno, sal,
+	SUM(sal) OVER (PARTITION BY deptno
+			ORDER BY empno
+			ROWS 1 PRECEDING ) pre_sum
+FROM emp;
+
+SELECT empno, ename, deptno, sal,
+	SUM(sal) OVER(ORDER BY deptno, empno ROWS 2 PRECEDING) sal1,
+	SUM(sal) OVER(ORDER BY deptno, empno
+			ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING ) sal2
+FROM emp;
+
+SELECT empno, ename, deptno, sal,
+	SUM(sal) OVER(ORDER BY deptno, empno
+		ROWS BETWEEN UNBOUNDED PRECEDING
+		AND UNBOUNDED FOLLOWING) sal1,
+	SUM(sal) OVER(ORDER BY deptno, empno
+		ROWS BETWEEN UNBOUNDED PRECEDING
+		AND CURRENT ROW) sal2,
+	SUM(sal) OVER(ORDER BY deptno, empno
+		ROWS BETWEEN CURRENT ROW
+		AND UNBOUNDED FOLLOWING) sal3
+FROM emp;
+
+SELECT deptno, empno, sal,
+	LAG(sal) OVER(ORDER BY deptno, empno) s_1,
+	LEAD(sal) OVER(ORDER BY deptno, empno) s_2,
+	LEAD(sal, 2, 0) OVER(ORDER BY deptno, empno) s_3
+FROM emp;
+
+SELECT empno, deptno, sal,
+	FIRST_VALUE(sal) OVER() first_emp,
+	LAST_VALUE (sal) OVER() last_emp,
+	FIRST_VALUE(sal) OVER(PARTITION BY deptno) dept_first_emp,
+	LAST_VALUE (sal) OVER(PARTITION BY deptno) dept_last_emp
+FROM emp;
+
+
+/*실무에 도움이 되는 팁*/
+//ROW_NUMBER()
+SELECT deptno,
+	DECODE(deptno,10,ename) dept10,
+	DECODE(deptno,20,ename) dept20,
+	DECODE(deptno,30,ename) dept30
+FROM emp
+ORDER BY deptno;
+
+SELECT deptno, ename,
+	ROW_NUMBER() OVER(PARTITION BY deptno ORDER BY ename) rn
+FROM emp;
+
+SELECT deptno,
+	DECODE(rn,1,ename) ename1,
+	DECODE(rn,2,ename) ename2,
+	DECODE(rn,3,ename) ename3,
+	DECODE(rn,4,ename) ename4,
+	DECODE(rn,5,ename) ename5,
+	DECODE(rn,6,ename) ename6
+FROM
+	(SELECT deptno, ename,
+		ROW_NUMBER() OVER(PARTITION BY deptno ORDER BY ename) rn
+	FROM emp);
+
+
+//MAX MIN
+SELECT deptno,
+	MIN(DECODE(rn,1,ename)) ename1,
+	MIN(DECODE(rn,2,ename)) ename2,
+	MIN(DECODE(rn,3,ename)) ename3,
+	MIN(DECODE(rn,4,ename)) ename4,
+	MIN(DECODE(rn,5,ename)) ename5,
+	MIN(DECODE(rn,6,ename)) ename6
+FROM
+	(SELECT deptno, ename,
+		ROW_NUMBER() OVER(PARTITION BY deptno ORDER BY ename) rn
+	FROM emp)
+GROUP BY deptno;
+
+//WM_CONCAT
+SELECT deptno, WM_CONCAT(ename) ename
+FROM emp
+GROUP BY deptno;
+
+//특정기간의 일자 출력
+SELECT TO_CHAR(SYSDATE + level-1, 'YYYY-MM-DD HH24:MI:SS')
+FROM DUAL
+CONNECT BY LEVEL <= 10;
+
+//해당 월의 일자와 요일
+SELECT LEVEL day, TO_CHAR(LAST_DAY(SYSDATE) - TO_CHAR(LAST_DAY(SYSDATE),'DD')+LEVEL,'DY') week
+FROM DUAL
+CONNECT BY LEVEL <= TO_CHAR(LAST_DAY(SYSDATE),'DD');
+
+//ROWID를 이용한 중복된 ROW의 삭제
+CREATE TABLE emp_dup AS SELECT * FROM emp;
+
+INSERT INTO emp_dup
+	(empno, ename, job, mgr, hiredate, sal, comm, deptno)
+SELECT 7369, 'TIGER', job, mgr, hiredate, sal, comm, deptno
+FROM emp_dup
+WHERE empno = 7369;
+COMMIT;
+
+SELECT empno, ename FROM emp_dup WHERE empno = 7369;
+
+DELETE FROM emp_dup a
+WHERE ROWID > (SELECT MIN(ROWID)
+		FROM emp_dup b
+		WHERE b.empno = a.empno);
+COMMIT;
+
+SELECT empno, ename FROM emp_dup WHERE empno = 7369;
+
+INSERT INTO emp_dup
+	(empno, ename, job, mgr, hiredate, sal, comm, deptno)
+SELECT 7369, 'TIGER', job, mgr, hiredate, sal, comm, deptno
+FROM emp_dup
+WHERE empno = 7369;
+COMMIT;
+
+DELETE FROM emp_dup a
+WHERE ROWID < (SELECT MAX(ROWID)
+		FROM emp_dup b
+		WHERE a.empno = b.empno);
+COMMIT;
+
+SELECT empno, ename FROM emp_dup WHERE empno = 7369;
+
+DROP TABLE emp_dup;
+
+
+//DBMS_RANDOM
+SELECT DBMS_RANDOM.VALUE(1000, 10000) rand FROM DUAL;
+SELECT CEIL(DBMS_RANDOM.VALUE(1000, 10000)) rand
+FROM DUAL
+CONNECT BY LEVEL <= 10;
+
+//DBMS_RANDOM.STRING
+WITH t AS(
+	SELECT DBMS_RANDOM.STRING('U', 10) rand FROM DUAL -- 대문자
+	UNION ALL
+	SELECT DBMS_RANDOM.STRING('L', 10) rand FROM DUAL -- 소문자
+	UNION ALL
+	SELECT DBMS_RANDOM.STRING('A', 10) rand FROM DUAL -- 영문자
+	UNION ALL
+	SELECT DBMS_RANDOM.STRING('X', 10) rand FROM DUAL -- 영숫자
+	UNION ALL
+	SELECT DBMS_RANDOM.STRING('P', 10) rand FROM DUAL -- 문자혼합
+)
+SELECT * FROM t;
+
+
+
+/* SQL*LOADER */
+CREATE TABLE dept_test AS SELECT * FROM dept WHERE 1=2;
+SELECT * FROM dept_test;
+
+도스:sqlldr userid=scott/tiger control='D:\sqlldr\dept_test.ctl'
+
+sqlldr 실행한 폴더위치에 로그파일 생성됨
+bad파일은 ctl 파일 있는곳에 생성됨
+
+DELETE FROM dept_test;
+COMMIT;
+
+시퀀스생성
+CREATE SEQUENCE seq_deptno
+START WITH 5
+INCREMENT BY 5;
+
+도스:sqlldr userid=scott/tiger control='D:\sqlldr\dept_seq.ctl'
+
+CLOB관련!! http://www.oracleclub.com/oraclelecture.action?lectureType=ADMIN  SQL*LOADER 3번 참고
+
+VIEW / MULTITABLE 은 스스로 공부하자!

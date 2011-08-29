@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+ 
+<sqlMap namespace="cachemodel">
+	
+	<cacheModel type="LRU" id="selectArticleListCache" readOnly="true" serialize="false">
+		<flushInterval minutes="60"/>
+		<property name="cache-size" value="10"/>
+		<flushOnExecute statement="article.insertArticle"/>
+		<flushOnExecute statement="article.deleteArticle"/>
+	</cacheModel>
+     
+</sqlMap>

@@ -1,0 +1,13 @@
+1. 자바설치 - JDK 6
+2. 이클립스 다운 압축 해제
+3. d:\dev\eclipse-3.6.0\eclipse.ini javaw.exe 디렉토리 변경
+4. workspace 변경 (c:\workspace), o 다른 workspace로 이동 : [File]->[Switch Workspace]
+5. SVN Repository 실행 -> 소스 Checkout -> Maven 컴파일
+6. JAD Plugin 설치
+7. code template, code fomatter, save action
+8. tomcat 다운로드 압축해제
+9. 이클립스 -> Window -> Show View -> Server 실행해서 톰캣 등록
+10. Project -> Properties -> Targeted Runtimes 오류 수정
+11. Maven 다운로드 및 압축해제 PATH 등록, JAVA_HOME등록
+12. c:\workspace\struts2-project	, mvn compile
+13. Apache 다운로드 및 설치 (localhost설치)

@@ -1,0 +1,575 @@
+http://www.gurubee.net/
+oraclejava / oraclejava
+
+
+C:\oraclexe\app\oracle\product\10.2.0\server\BIN>sqlplus / as sysdba
+
+SQL> CREATE USER SCOTT IDENTIFIED BY TIGER;
+
+사용자가 생성되었습니다.
+
+SQL> GRANT CONNECT, RESOURCE TO SCOTT;
+
+권한이 부여되었습니다.
+
+SQL> CONN SCOTT/TIGER;
+연결되었습니다.
+
+
+DROP TABLE EMP;
+DROP TABLE DEPT;
+DROP TABLE BONUS;
+DROP TABLE SALGRADE;
+DROP TABLE DUMMY;
+
+CREATE TABLE EMP
+       (EMPNO NUMBER(4) NOT NULL,
+        ENAME VARCHAR2(10),
+        JOB VARCHAR2(9),
+        MGR NUMBER(4),
+        HIREDATE DATE,
+        SAL NUMBER(7, 2),
+        COMM NUMBER(7, 2),
+        DEPTNO NUMBER(2));
+
+INSERT INTO EMP VALUES
+        (7369, 'SMITH',  'CLERK',     7902,
+        sysdate,  800, NULL, 20);
+        
+INSERT INTO EMP VALUES
+        (7499, 'ALLEN',  'SALESMAN',  7698,
+        sysdate, 1600,  300, 30);
+        
+INSERT INTO EMP VALUES
+        (7521, 'WARD',   'SALESMAN',  7698,
+        sysdate, 1250,  500, 30);
+        
+INSERT INTO EMP VALUES
+        (7566, 'JONES',  'MANAGER',   7839,
+        sysdate,  2975, NULL, 20);
+        
+INSERT INTO EMP VALUES
+        (7654, 'MARTIN', 'SALESMAN',  7698,
+        sysdate, 1250, 1400, 30);
+        
+INSERT INTO EMP VALUES
+        (7698, 'BLAKE',  'MANAGER',   7839,
+        sysdate,  2850, NULL, 30);
+        
+INSERT INTO EMP VALUES
+        (7782, 'CLARK',  'MANAGER',   7839,
+        sysdate,  2450, NULL, 10);
+INSERT INTO EMP VALUES
+        (7788, 'SCOTT',  'ANALYST',   7566,
+        sysdate, 3000, NULL, 20);
+        
+INSERT INTO EMP VALUES
+        (7839, 'KING',   'PRESIDENT', NULL,
+        sysdate, 5000, NULL, 10);
+        
+INSERT INTO EMP VALUES
+        (7844, 'TURNER', 'SALESMAN',  7698,
+        sysdate,  1500,    0, 30);
+        
+INSERT INTO EMP VALUES
+        (7876, 'ADAMS',  'CLERK',     7788,
+        sysdate, 1100, NULL, 20);
+        
+INSERT INTO EMP VALUES
+        (7900, 'JAMES',  'CLERK',     7698,
+        sysdate,   950, NULL, 30);
+        
+INSERT INTO EMP VALUES
+        (7902, 'FORD',   'ANALYST',   7566,
+        sysdate,  3000, NULL, 20);
+        
+INSERT INTO EMP VALUES
+        (7934, 'MILLER', 'CLERK',     7782,
+        sysdate, 1300, NULL, 10);
+
+CREATE TABLE DEPT
+       (DEPTNO NUMBER(2),
+        DNAME VARCHAR2(14),
+        LOC VARCHAR2(13) );
+
+INSERT INTO DEPT VALUES (10, 'ACCOUNTING', 'NEW YORK');
+INSERT INTO DEPT VALUES (20, 'RESEARCH',   'DALLAS');
+INSERT INTO DEPT VALUES (30, 'SALES',      'CHICAGO');
+INSERT INTO DEPT VALUES (40, 'OPERATIONS', 'BOSTON');
+
+CREATE TABLE BONUS
+        (ENAME VARCHAR2(10),
+         JOB   VARCHAR2(9),
+         SAL   NUMBER,
+         COMM  NUMBER);
+
+CREATE TABLE SALGRADE
+        (GRADE NUMBER,
+         LOSAL NUMBER,
+         HISAL NUMBER);
+
+INSERT INTO SALGRADE VALUES (1,  700, 1200);
+INSERT INTO SALGRADE VALUES (2, 1201, 1400);
+INSERT INTO SALGRADE VALUES (3, 1401, 2000);
+INSERT INTO SALGRADE VALUES (4, 2001, 3000);
+INSERT INTO SALGRADE VALUES (5, 3001, 9999);
+
+CREATE TABLE DUMMY
+        (DUMMY NUMBER);
+
+INSERT INTO DUMMY VALUES (0);
+
+COMMIT;
+
+
+//Equi JOIN
+SELECT e.empno, e.ename, d.dname
+FROM dept d, emp e
+WHERE d.deptno = e.deptno;
+
+explain plan for SELECT e.empno, e.ename, d.dname
+FROM dept d, emp e
+WHERE d.deptno = e.deptno;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+
+//INNER JOIN
+SELECT e.empno, e.ename, d.dname
+FROM dept d INNER JOIN emp e
+ON d.deptno = e.deptno;
+
+explain plan for SELECT e.empno, e.ename, d.dname
+FROM dept d INNER JOIN emp e
+ON d.deptno = e.deptno;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+//Natural JOIN
+SELECT e.empno, e.ename, d.dname
+FROM dept d NATURAL JOIN emp e;
+
+//Natural JOIN
+SELECT e.empno, e.ename, deptno
+FROM emp e JOIN dept d USING(deptno);
+
+//Self JOIN
+SELECT e.ename, a.ename "Manager"
+FROM emp e, emp a
+WHERE e.empno = a.mgr;
+
+explain plan for SELECT e.ename, a.ename "Manager"
+FROM emp e, emp a
+WHERE e.empno = a.mgr;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+
+DB 속도 NL > Hash > Merge
+
+//Outer JOIN
+SELECT DISTINCT(e.deptno), d.deptno
+FROM emp e, dept d
+WHERE e.deptno(+) = d.deptno;
+
+explain plan for SELECT DISTINCT(e.deptno), d.deptno
+FROM emp e, dept d
+WHERE e.deptno(+) = d.deptno;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+SELECT INDEX_NAME FROM USER_INDEXES WHERE TABLE_NAME in ('EMP','DEPT');
+
+ALTER TABLE EMP ADD CONSTRAINTS PK_EMP PRIMARY KEY (EMPNO);
+ALTER TABLE DEPT ADD CONSTRAINTS PK_DEPT PRIMARY KEY (DEPTNO);
+
+CREATE INDEX EMP_DEPTNO ON EMP (DEPTNO);
+
+//실행계획 *(access = INDEX / filter != INDEX)
+
+//LEFT,RIGHT,FULL Outer Join
+SELECT DISTINCT(e.deptno), d.deptno
+FROM dept d LEFT OUTER JOIN emp e
+ON d.deptno = e.deptno;
+
+SELECT DISTINCT(e.deptno), d.deptno
+FROM emp e RIGHT OUTER JOIN dept d
+ON e.deptno = d.deptno;
+
+//Subquery
+//Single-Row
+SELECT ename, job
+FROM emp
+WHERE job = (SELECT job FROM emp WHERE empno = 7379);
+
+explain plan for SELECT ename, job
+FROM emp
+WHERE job = (SELECT job FROM emp WHERE empno = 7379);
+
+//ANY
+SELECT ename, sal
+FROM emp
+WHERE deptno != 20
+AND sal > ANY (SELECT sal
+		FROM emp
+		WHERE job = 'SALESMAN');
+
+//ALL
+SELECT ename, sal
+FROM emp
+WHERE deptno != 20
+AND sal > ALL (SELECT sal
+		FROM emp
+		WHERE job = 'SALESMAN');
+
+//EXISTS
+SELECT DISTINCT d.deptno, d.dname
+FROM dept d, emp e
+WHERE d.deptno = e.deptno;
+
+explain plan for SELECT DISTINCT d.deptno, d.dname
+FROM dept d, emp e
+WHERE d.deptno = e.deptno;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+SELECT d.deptno, d.dname
+FROM dept d
+WHERE EXISTS
+	(SELECT 1
+	FROM emp e
+	WHERE e.deptno = d.deptno);
+
+explain plan for SELECT d.deptno, d.dname
+FROM dept d
+WHERE EXISTS
+	(SELECT 1
+	FROM emp e
+	WHERE e.deptno = d.deptno);
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+//Multiple
+SELECT empno, sal, deptno
+FROM emp
+WHERE (sal, deptno) IN (SELECT sal, deptno
+			FROM emp
+			WHERE deptno = 30
+			AND comm is NOT NULL);
+
+//Scalar Subquery
+SELECT ename,
+	(SELECT dname FROM dept d WHERE d.deptno = e.deptno) deptno
+FROM emp e
+WHERE job = 'MANAGER';
+
+SELECT d.deptno, d.dname,
+	(SELECT MAX(sal)
+	FROM emp
+	WHERE deptno = d.deptno) sal
+FROM dept d;
+
+explain plan for SELECT d.deptno, d.dname,
+	(SELECT MAX(sal)
+	FROM emp
+	WHERE deptno = d.deptno) sal
+FROM dept d;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+SELECT d.deptno, d.dname, MAX(e.sal)
+FROM dept d, emp e
+WHERE d.deptno = e.deptno(+)
+GROUP BY d.deptno, d.dname
+ORDER BY d.deptno;
+
+explain plan for SELECT d.deptno, d.dname, MAX(e.sal)
+FROM dept d, emp e
+WHERE d.deptno = e.deptno(+)
+GROUP BY d.deptno, d.dname
+ORDER BY d.deptno;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+//Inline View
+SELECT b.empno, b.ename, b.job, b.sal, b.deptno
+FROM (SELECT empno
+	FROM emp
+	WHERE sal > (SELECT AVG(sal)
+		FROM emp
+		WHERE deptno = 20)) a, emp b
+WHERE a.empno = b.empno
+AND b.mgr is NOT NULL
+AND b.deptno != 20;
+
+explain plan for SELECT b.empno, b.ename, b.job, b.sal, b.deptno
+FROM (SELECT empno
+	FROM emp
+	WHERE sal > (SELECT AVG(sal)
+		FROM emp
+		WHERE deptno = 20)) a, emp b
+WHERE a.empno = b.empno
+AND b.mgr is NOT NULL
+AND b.deptno != 20;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+//Union
+SELECT deptno FROM emp
+UNION
+SELECT deptno FROM dept;
+
+explain plan for SELECT deptno FROM emp
+UNION
+SELECT deptno FROM dept;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+//Union ALL
+SELECT deptno FROM emp
+UNION ALL
+SELECT deptno FROM dept;
+
+explain plan for SELECT deptno FROM emp
+UNION ALL
+SELECT deptno FROM dept;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+//부분범위 처리 set arraysize 100
+
+//INTERSECT
+SELECT deptno FROM emp
+INTERSECT
+SELECT deptno FROM dept;
+
+explain plan for SELECT deptno FROM emp
+INTERSECT
+SELECT deptno FROM dept;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+SELECT deptno FROM emp
+MINUS
+SELECT deptno FROM dept;
+
+explain plan for SELECT deptno FROM emp
+MINUS
+SELECT deptno FROM dept;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+
+//LPAD
+create sequence test_seq increment by 1 start with 1;
+select lpad(test_seq.nextval, 10, '0') from dual connect by level < 11;
+select TO_CHAR(SYSDATE,'yyyymmdd')||lpad(test_seq.nextval, 8, '0') from dual connect by level < 11;
+drop sequence test_seq;
+
+//LENGTH
+SELECT LENGTH('오라클클럽') len FROM DUAL
+UNION ALL
+SELECT LENGTHB('오라클클럽') len FROM DUAL;
+
+//SYSDATE
+SELECT TO_CHAR(SYSDATE, 'RRRR-MM-DD HH24:MI:SS') "지금시간" FROM DUAL;
+SELECT TO_CHAR(SYSDATE-1, 'RRRR-MM-DD HH24:MI:SS') "하루전지금시간" FROM DUAL;
+SELECT TO_CHAR(SYSDATE-1/24, 'RRRR-MM-DD HH24:MI:SS') "1시간전시간" FROM DUAL;
+SELECT TO_CHAR(SYSDATE-1/24/60, 'RRRR-MM-DD HH24:MI:SS') "1분전시간" FROM DUAL;
+SELECT TO_CHAR(SYSDATE-1/24/60/10, 'RRRR-MM-DD HH24:MI:SS') "1분전시간" FROM DUAL;
+SELECT TO_CHAR(SYSDATE-1/24/60/60*6, 'RRRR-MM-DD HH24:MI:SS') "6초전시간" FROM DUAL;
+SELECT TO_CHAR(SYSDATE-(1/24*6)+(1/24/60*30)+(1/24/60/60*10), 'RRRR-MM-DD HH24:MI:SS') "5시간 30분 10초전" FROM DUAL;
+
+//SYSTIMESTAMP
+SELECT TO_CHAR(SYSTIMESTAMP, 'RRRR-MM-DD HH24:MI:SS.FF3') FROM DUAL;
+SELECT TO_CHAR(SYSTIMESTAMP -1/24/60, 'RRRR-MM-DD HH24:MI:SS') FROM DUAL;
+SELECT TO_CHAR(SYSTIMESTAMP -1/24/60, 'RRRR-MM-DD HH24:MI:SS:FF3') FROM DUAL;
+
+//TO_CHAR
+SELECT TO_CHAR(12345678,'999,999,999') comma FROM DUAL;
+SELECT TO_CHAR(123.45678,'999,999,999.99') period FROM DUAL;
+SELECT TO_CHAR(12345678,'$999,999,999') dollar FROM DUAL;
+SELECT TO_CHAR(12345678,'L999,999,999') local FROM DUAL;
+
+//변환함수
+SELECT TO_CHAR(SYSDATE, 'DDD') "Day of year" FROM DUAL;
+SELECT TO_CHAR(SYSDATE, 'WW') "Week of year1" FROM DUAL;
+SELECT TO_CHAR(SYSDATE, 'IW') "Week of year2" FROM DUAL;
+SELECT TO_CHAR(SYSDATE, 'W') "Week of year3" FROM DUAL;
+
+//DECODE
+SELECT deptno, DECODE(deptno, 10, 'ACCOUNTING',
+			      20, 'RESEARCH',
+			      30, 'SALES', 'OPERATIONS') name
+FROM dept;
+
+SELECT deptno, DECODE(deptno, 10, SUM(sal),
+			      20, MAX(sal),
+			      30, MIN(sal)) sal
+FROM emp
+GROUP BY deptno;
+
+SELECT d.deptno, NVL(SUM(e.sal),0) sal
+FROM emp e, dept d
+WHERE e.deptno(+) = d.deptno
+GROUP BY d.deptno;
+
+SELECT deptno, 
+       NVL(SUM(DECODE(deptno, 10, sal)),0) deptno10,
+       NVL(SUM(DECODE(deptno, 20, sal)),0) deptno20,
+       NVL(SUM(DECODE(deptno, 30, sal)),0) deptno30,
+       NVL(SUM(DECODE(deptno, 40, sal)),0) deptno40
+FROM emp
+GROUP BY deptno;
+
+SELECT 
+       MAX(NVL(SUM(DECODE(deptno, 10, sal)),0)) deptno10,
+       MAX(NVL(SUM(DECODE(deptno, 20, sal)),0)) deptno20,
+       MAX(NVL(SUM(DECODE(deptno, 30, sal)),0)) deptno30,
+       MAX(NVL(SUM(DECODE(deptno, 40, sal)),0)) deptno40
+FROM emp
+GROUP BY deptno;
+
+
+*MIN 값으로 MAX값처럼 NVL(NULL)이면 0인걸 삭제
+SELECT 
+       MIN(SUM(DECODE(deptno, 10, sal))) deptno10,
+       MIN(SUM(DECODE(deptno, 20, sal))) deptno20,
+       MIN(SUM(DECODE(deptno, 30, sal))) deptno30,
+       MIN(SUM(DECODE(deptno, 40, sal))) deptno40
+FROM emp
+GROUP BY deptno;
+
+
+//Case문
+SELECT ename,
+	CASE
+	WHEN sal < 1000 THEN sal+(sal*0.8)
+	WHEN sal BETWEEN 1000 AND 2000 THEN sal+(sal*0.5)
+	WHEN sal BETWEEN 2001 AND 3000 THEN sal+(sal*0.3)
+	ELSE sal+(sal*0.1)
+	END sal
+FROM emp;
+
+//NVL2
+SELECT empno, NVL2(mgr, 1, 0) mgr, mgr
+FROM emp
+WHERE deptno = 10;
+
+SELECT COUNT(DISTINCT d.deptno) "중복제거 수",
+	COUNT(d.deptno) "전체 수"
+FROM emp e, dept d
+WHERE e.deptno = d.deptno;
+
+explain plan for SELECT COUNT(DISTINCT d.deptno) "중복제거 수",
+	COUNT(d.deptno) "전체 수"
+FROM emp e, dept d
+WHERE e.deptno = d.deptno;
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+SELECT COUNT(*)
+FROM dept d
+WHERE EXISTS (SELECT 1 FROM emp e WHERE e.deptno = d.deptno);
+
+explain plan for SELECT COUNT(*)
+FROM dept d
+WHERE EXISTS (SELECT 1 FROM emp e WHERE e.deptno = d.deptno);
+
+SELECT * FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+//HAVING
+SELECT b.dname, COUNT(a.empno) "사원수"
+FROM emp a, dept b
+WHERE a.deptno = b.deptno
+GROUP BY dname
+HAVING COUNT(a.empno) > 5;
+
+SELECT b.dname, avg(a.sal)
+FROM emp a, dept b
+WHERE a.deptno = b.deptno
+GROUP BY dname
+HAVING avg(a.sal) > 2000;
+
+SELECT 2011, 1, 1, dname, avg(sal)
+FROM emp a, dept b
+WHERE a.deptno = b.deptno
+GROUP BY dname
+HAVING avg(a.sal) > 2000;
+
+//GROUPING SETS
+SELECT deptno, job, SUM(sal)
+FROM emp
+GROUP BY GROUPING SETS(deptno, job);
+
+SELECT NULL deptno, job, SUM(sal)
+FROM emp
+GROUP BY job
+UNION ALL
+SELECT deptno, NULL job, SUM(sal)
+FROM emp
+GROUP BY deptno;
+
+//ROLLUP
+SELECT deptno,
+	SUM(sal) s_sal
+FROM emp
+GROUP BY ROLLUP(deptno);
+
+SELECT deptno,
+	SUM(sal) s_sal
+FROM emp
+GROUP BY deptno
+UNION ALL
+SELECT NULL deptno,
+	SUM(sal) s_sal
+FROM emp;
+
+SELECT deptno, empno,
+	SUM(sal) s_sal
+FROM emp
+GROUP BY ROLLUP(deptno,empno);
+
+//GROUPING,GROUPING_ID
+SELECT deptno, empno, SUM(sal) s_sal,
+	GROUPING(deptno),
+	GROUPING(empno),
+	GROUPING_ID(deptno,empno)
+FROM emp
+GROUP BY ROLLUP(deptno,empno);
+
+//GROUPING,GROUPING_ID 퀴즈1
+SELECT deptno,
+	DECODE(GROUPING(empno),1,'소계',empno)empno,
+	SUM(sal) s_sal
+FROM emp
+GROUP BY ROLLUP(deptno, empno)
+HAVING GROUPING_ID(empno,deptno) != 3;
+
+SELECT deptno,
+	DECODE(GROUPING(empno),1,'소계',empno)empno,
+	SUM(sal) s_sal
+FROM emp
+GROUP BY deptno, ROLLUP(empno);
+
+//GROUPING,GROUPING_ID 퀴즈2
+SELECT deptno,
+	DECODE(GROUPING(deptno),1,'합계',empno) empno,
+	SUM(sal) s_sal
+FROM emp
+GROUP BY ROLLUP(deptno, empno)
+HAVING GROUPING_ID(deptno,empno) != 1;
+
+SELECT deptno,
+	DECODE(GROUPING(deptno),1,'합계',empno) empno,
+	SUM(sal) s_sal
+FROM emp
+GROUP BY ROLLUP((deptno,empno));
+
+*select ceil(rownum/3) from dual connect by level < 11;
+
+//Cube
+SELECT deptno, empno, SUM(sal) s_sal
+FROM emp
+GROUP BY CUBE(deptno, empno)
+ORDER BY deptno, empno;

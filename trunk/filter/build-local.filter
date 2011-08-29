@@ -1,0 +1,12 @@
+
+LOG4J.debugLevel = DEBUG
+LOG4J.infoLevel = INFO
+LOG4J.logType = console
+
+JDBC.Driver=oracle.jdbc.driver.OracleDriver
+JDBC.ConnectionURL=jdbc:oracle:thin:@192.168.0.78:1521:ORCL
+JDBC.Username=scott
+JDBC.Password=tiger
+
+
+uploadPath = C:/workspace/spring3-project/webapps/upload

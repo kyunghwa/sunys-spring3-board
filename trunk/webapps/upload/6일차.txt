@@ -1,0 +1,26 @@
+대부분 setter 사용
+
+bean id = 'Dao' 필드명하고 동일
+
+실무에서는 POJO 를 이용한 AOP 만 사용
+
+before advice - target 클래스의 메소드가 실행되기 전에 실행 invocation 랑 같은 개념
+
+AOP 개념 다시 공부
+
+Spring - Apache 연동
+1. Apache - httpd-vhosts.conf
+2. Apache - workers.properties 추가
+3. Server 에서 따로 Server 추가
+4. 서버 포트 변경
+5. Apache 재시작
+6. 추가한 프로젝트 클린
+7. 갱신
+8. web.xml 수정
+web.xml -> mvc-dispatcher-servlet.xml 파일명 확인
+
+simple 을 1  beanname 을 보통2
+
+xml 작성시 class 확인 ctrl!!!
+
+스프링2.5 버그 파일업로드시 1개 밖에 안됨

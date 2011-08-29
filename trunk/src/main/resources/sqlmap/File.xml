@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="file">
+
+    <typeAlias alias="fileInfo" type="com.spring.mvc.article.model.FileInfo"/>
+            
+    <insert id="insertFile" parameterClass="fileInfo" >	    
+        INSERT INTO tb_file
+            (file_id, article_id, origin_filename, save_filename, 
+             file_size, mime_type, file_path, use_yn, regist_ymdt)
+        VALUES
+            (SEQ_FILE_ID.NEXTVAL, #articleId#, #originFilename#, #saveFilename#,  
+             #fileSize#, #mimeType#, #filePath#, 'Y', SYSDATE)
+    </insert>
+  	
+  	 <update id="deleteFile" parameterClass="int" >
+        UPDATE tb_file
+           SET use_yn = 'N',
+               update_ymdt = SYSDATE
+        WHERE file_id = #fileId#
+    </update>
+    
+    <update id="deleteArticleFile" parameterClass="int" >
+        UPDATE tb_file
+           SET use_yn = 'N',
+               update_ymdt = SYSDATE
+        WHERE article_id = #articleId#
+    </update>
+    
+    <select id="selectArticleFileList" resultClass="fileInfo" parameterClass="int" >
+	   SELECT file_id fileId, article_id articleId, origin_filename originFilename, 
+	          save_filename saveFilename, file_size fileSize, mime_type mimeType, 
+	          file_path filePath, regist_ymdt registYmdt
+	   FROM tb_file
+	   WHERE article_id = #articleId#
+	     AND use_yn ='Y'
+    </select>     
+
+    <select id="selectFileInfo" resultClass="fileInfo" parameterClass="int" >
+       SELECT file_id fileId, article_id articleId, origin_filename originFilename, 
+              save_filename saveFilename, file_size fileSize, mime_type mimeType, 
+              file_path filePath, regist_ymdt registYmdt
+       FROM tb_file
+       WHERE file_id = #fileId#
+         AND use_yn ='Y'
+    </select>        
+</sqlMap>

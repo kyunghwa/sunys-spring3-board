@@ -35,7 +35,7 @@
             <a href="javascript:act.login();"  class="btn_big"><span>로그인</span></a> 
             <a href="/article/list.ok"  class="btn_big"><span>취 소</span></a>    
         </td>
-    </tr>           
+    </tr>   
     
     <tr height="20"><td  align="center"><form:errors path="empno" cssClass="redB" /></td></tr>
     <tr>

@@ -1,7 +1,6 @@
 /*
- * UserLoginController.java 2011. 8. 27.
+ * UserJoinController.java 2011. 9. 23.
  *
- * Copyright oracleclub.com All rights Reserved.
  */
 package com.spring.mvc.user.controller;
 
@@ -20,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.spring.mvc.common.util.CookieUtil;
-import com.spring.mvc.user.model.Emp;
+import com.spring.mvc.user.model.Member;
 
 /**
  * Class 내용 기술
@@ -36,14 +35,14 @@ public class UserJoinController {
     private static final Log LOG = LogFactory.getLog(UserJoinController.class);
 
     @RequestMapping(value = "/joinform")
-    public String loginForm() {
+    public String joinForm() {
         return "user/JoinForm";
     }
 
     @RequestMapping(value = "/join", method = RequestMethod.POST)
-    public String login(HttpServletResponse response, @Valid Emp emp, BindingResult result) {
+    public String join(HttpServletResponse response, @Valid Member member, BindingResult result) {
 
-        // 사원번호와 비밀번호로 인증하는 비지니스 로직을 추가하면 되겠죠
+        // 가입시
 
         // Validation 오류 발생시 게시글 정보 등록화면으로 이동
         if (result.hasErrors()) {
@@ -55,7 +54,7 @@ public class UserJoinController {
 
             return "user/LoginForm";
         } else {
-            CookieUtil.setCookie(response, "LOGIN_KEY", String.valueOf(emp.getEmpno()),
+            CookieUtil.setCookie(response, "LOGIN_KEY", String.valueOf(member.getId()),
                     CookieUtil.COOKIE_DEFAULT_MAX_AGE, CookieUtil.COOKIE_DEFAULT_DOMAIN);
 
         }

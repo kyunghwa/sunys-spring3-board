@@ -12,7 +12,7 @@
             (#id#, #passwd#, #name#, #email#, #hp#, SYSDATE)
     </insert>
   	
-  	<select id="joinMemberCheck" parameterClass="member">
+  	<select id="selectJoinMember" parameterClass="member">
   		SELECT id id
   		FROM tb_member
   		WHERE id = #id#

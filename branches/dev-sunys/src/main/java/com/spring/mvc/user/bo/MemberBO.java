@@ -7,7 +7,6 @@ package com.spring.mvc.user.bo;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.spring.mvc.user.dao.MemberDAO;
@@ -21,7 +20,8 @@ import com.spring.mvc.user.model.Member;
  */
 @Service
 public class MemberBO {
-    @Autowired
+
+    // @autowired 미적용
     private MemberDAO memberDAO;
 
     /**
